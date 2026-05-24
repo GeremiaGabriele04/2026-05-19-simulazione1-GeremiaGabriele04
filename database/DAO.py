@@ -54,7 +54,7 @@ class DAO:
         result = []
 
         cursor = conn.cursor(dictionary=True)
-        query = """select i2.CustomerId , a.ArtistId, sum(i2.Total) as totale
+        query = """select i2.CustomerId as CustomerId, a.ArtistId as ArtistId, sum(i2.Total) as totale
                     from invoiceline i , invoice i2 , track t , album a 
                     where i.InvoiceId = i2.InvoiceId and i.TrackId = t.TrackId and t.AlbumId = a.AlbumId 
                     group by i2.CustomerId , a.ArtistId"""
@@ -62,7 +62,30 @@ class DAO:
         cursor.execute(query)
 
         for row in cursor:
-            result.append((row["i2.CustomerId"], row["a.ArtistId"], row["totale"]))
+            result.append((row["CustomerId"], row["ArtistId"], row["totale"]))
+
+        cursor.close()
+        conn.close()
+        return result
+
+    @staticmethod
+    def getPopolarita():
+        conn = DBConnect.get_connection()
+
+        result = {}
+
+        cursor = conn.cursor(dictionary=True)
+        query = """select a.ArtistId as ArtistId, count(*) as pop
+                    from invoiceline i , track t , album a 
+                    where i.TrackId = t.TrackId 
+                    and t.AlbumId = a.AlbumId 
+                    group by a.ArtistId 
+                    """
+
+        cursor.execute(query)
+
+        for row in cursor:
+            result[row["ArtistId"]] = row["pop"]
 
         cursor.close()
         conn.close()
