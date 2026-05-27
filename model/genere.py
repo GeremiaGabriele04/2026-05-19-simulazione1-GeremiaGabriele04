@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Genere:
+class Genre:
     GenreId: int
     Name: str
 

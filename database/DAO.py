@@ -1,94 +1,152 @@
 from database.DB_connect import DBConnect
-from model.artista import Artista
-from model.genere import Genere
+from model.artista import Artist
+from model.genere import Genre
 
 
-class DAO:
+class DAO():
+
     @staticmethod
-    def getAllGeneri():
+
+    def getAllGenre():
+
         conn = DBConnect.get_connection()
+
+
 
         result = []
 
+
+
         cursor = conn.cursor(dictionary=True)
-        query = """select g.GenreId as id, g.Name as nome
-                    from genre g """
+
+        query = """SELECT *
+
+                   from genre g
+
+                   order by g.Name """
+
+
 
         cursor.execute(query)
 
+
+
         for row in cursor:
-            result.append(Genere(row["id"], row["nome"]))
+
+            result.append(Genre(**row))
+
+
 
         cursor.close()
+
         conn.close()
+
         return result
 
+
+
     @staticmethod
-    def getAllArtists(id):
+
+    def getAllNodes(idGenre):
+
         conn = DBConnect.get_connection()
+
+
 
         result = []
 
-        cursor = conn.cursor(dictionary=True)
-        query = """select * 
-                    from artist a 
-                    where a.ArtistId in (select distinct ArtistId 
-                                            from album a 
-                                            where AlbumId in (select distinct AlbumId 
-                                                                from track t 
-                                                                where GenreId = %s)) """
 
-        cursor.execute(query, (id,))
+
+        cursor = conn.cursor(dictionary=True)
+
+        query = """SELECT distinct(a.ArtistId) as ArtistId,a.Name as Name
+
+                    from artist a,album al,track t
+
+                    where t.GenreId=%s and t.AlbumId=al.AlbumID and al.ArtistID=a.ArtistId
+
+                    order by a.Name """
+
+
+
+        cursor.execute(query,(idGenre,))
+
+
 
         for row in cursor:
-            result.append(Artista(row["ArtistId"], row["Name"]))
+
+            result.append(Artist(row["ArtistId"],row["Name"]))
+
+
 
         cursor.close()
+
         conn.close()
+
         return result
 
     @staticmethod
-    def getAllEdges():
+
+    def getAllEdges(idMap, genreID):
+
         conn = DBConnect.get_connection()
 
-        result = []
 
-        cursor = conn.cursor(dictionary=True)
-        query = """select i2.CustomerId as CustomerId, a.ArtistId as ArtistId, sum(i2.Total) as totale
-                    from invoiceline i , invoice i2 , track t , album a 
-                    where i.InvoiceId = i2.InvoiceId and i.TrackId = t.TrackId and t.AlbumId = a.AlbumId 
-                    group by i2.CustomerId , a.ArtistId"""
-
-        cursor.execute(query)
-
-        for row in cursor:
-            result.append((row["CustomerId"], row["ArtistId"], row["totale"]))
-
-        cursor.close()
-        conn.close()
-        return result
-
-    @staticmethod
-    def getPopolarita():
-        conn = DBConnect.get_connection()
 
         result = {}
 
-        cursor = conn.cursor(dictionary=True)
-        query = """select a.ArtistId as ArtistId, count(*) as pop
-                    from invoiceline i , track t , album a 
-                    where i.TrackId = t.TrackId 
-                    and t.AlbumId = a.AlbumId 
-                    group by a.ArtistId 
-                    """
 
-        cursor.execute(query)
+
+        cursor = conn.cursor(dictionary=True)
+
+        query = """SELECT distinct(ar.ArtistId) as ArtistId,i.CustomerId as customer ,sum(il.Quantity) as somma
+
+                    from invoiceline il,invoice i, track t, album a, artist ar
+
+                    where il.InvoiceId=i.InvoiceId and il.TrackId=t.TrackId
+
+                    and t.AlbumId=a.AlbumId and a.ArtistId=ar.ArtistId
+
+                    and t.GenreId=%s
+
+                    group by  a.ArtistId ,i.CustomerId
+
+                    order by i.CustomerId """
+
+
+
+        cursor.execute(query,(genreID,))
+
+
 
         for row in cursor:
-            result[row["ArtistId"]] = row["pop"]
+
+            artist_id=row["ArtistId"]
+
+
+
+            if artist_id in idMap:
+
+                customer=row["customer"]
+
+                quantita=row["somma"]
+
+                artist=idMap[artist_id]
+
+                if artist_id not in result:
+
+                    result[artist_id]={"artist":artist,"customer":set(),"popolarita":0}
+
+                result[artist_id]["customer"].add(customer)
+
+                result[artist_id]["popolarita"]+=quantita
+
+
 
         cursor.close()
+
         conn.close()
+
         return result
 
 

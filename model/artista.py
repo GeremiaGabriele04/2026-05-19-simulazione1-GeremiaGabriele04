@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Artista:
+class Artist:
     ArtistId: int
     Name: str
 
