@@ -8,7 +8,6 @@ class DAO():
     @staticmethod
 
     def getAllGenre():
-
         conn = DBConnect.get_connection()
 
 
